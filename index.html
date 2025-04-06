@@ -3,36 +3,242 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Siyasi Gündem Analizleri</title>
+    <title>Karanlığın Arşivleri</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
+            font-family: 'Courier New', monospace;
+            background-color: #000;
+            color: #0f0;
+            overflow-x: hidden;
+            cursor: none;
+        }
+
+        #container {
+            position: relative;
+            width: 100vw;
+            min-height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('https://via.placeholder.com/1200x800'); /* Geçerli bir URL */
+            background-size: cover;
+            opacity: 0.2;
+            filter: grayscale(100%);
+            transition: opacity 0.5s;
+            z-index: -2;
+        }
+
+        #overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.9) 100%);
+            z-index: -1;
+        }
+
+        #main-content {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start; /* Yukarıdan başlaması için */
+            min-height: calc(100vh - 60px); /* Başlık ve arama çubuğu için pay bırakıldı */
+            width: 80%;
+            max-width: 960px;
+            padding: 20px;
+            box-sizing: border-box;
+            z-index: 1;
+        }
+
+        h1 {
+            font-size: 2em;
+            margin-bottom: 20px;
             text-align: center;
         }
-        header {
-            background-color: #333;
-            color: white;
-            padding: 20px;
-            font-size: 24px;
+
+        #search-container {
+            width: 100%;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
         }
-        .content {
-            max-width: 800px;
-            margin: 20px auto;
-            padding: 20px;
-            line-height: 1.6;
+
+        #search-input {
+            padding: 10px;
+            width: 60%;
+            background-color: #111;
+            color: #0f0;
+            border: 1px solid #0f0;
+            font-family: 'Courier New', monospace;
+            border-radius: 5px;
+        }
+
+        #file-list {
+            width: 100%;
+            list-style: none;
+            padding: 0;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            background-color: #111;
+            color: #0f0;
+            border: 1px solid #222;
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            justify-content: space-between;
+        }
+
+        .file-name {
+            flex-grow: 1;
+        }
+
+        .play-button {
+            background: none;
+            color: #0f0;
+            border: 1px solid #0f0;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 1em;
+        }
+
+        .play-button.playing {
+            color: #ff0;
+            border-color: #ff0;
+        }
+
+        .waveform-container {
+            width: 100%;
+            height: 50px;
+            margin-top: 10px;
+            background-color: #000;
+            border: 1px solid #222;
+            border-radius: 5px;
         }
     </style>
 </head>
 <body>
-    <header>
-        Güncel Siyasi Analizler
-    </header>
-    <div class="content">
-        <h2>Siyaset Üzerine Derinlemesine İncelemeler</h2>
-        <p>Gündemi takip etmek artık daha önemli hale geldi. Burada tarafsız ve analiz odaklı içeriklerle günümüz siyasi olaylarını değerlendiriyoruz.</p>
-        <p>Bağımsız analizlerimiz ve tarafsız yorumlarımızla sizlere objektif bir bakış açısı sunmayı hedefliyoruz.</p>
+    <div id="container">
+        <div id="background"></div>
+        <div id="overlay"></div>
+        <div id="main-content">
+            <h1>Karanlığın Arşivleri</h1>
+            <div id="search-container">
+                <input type="text" id="search-input" placeholder="Dosya Ara...">
+            </div>
+            <ul id="file-list">
+                <li class="file-item">
+                    <span class="file-name">gizli_belge_001.txt</span>
+                    <button class="play-button" data-audio="ses_001">▶</button>
+                    <div class="waveform-container" id="waveform-gizli_belge_001"></div>
+                </li>
+                <li class="file-item">
+                    <span class="file-name">kayip_kayit_alpha.log</span>
+                    <button class="play-button" data-audio="ses_002">▶</button>
+                    <div class="waveform-container" id="waveform-kayip_kayit_alpha"></div>
+                </li>
+                </ul>
+        </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const playButtons = document.querySelectorAll('.play-button');
+            let currentlyPlaying = null;
+
+            playButtons.forEach(button => {
+                button.addEventListener('click', function(e) {
+                    const audioId = this.dataset.audio;
+                    const waveformId = `waveform-${this.parentNode.querySelector('.file-name').textContent.replace(/[^\w\s]/gi, '').replace(/\s/g, '_')}`;
+                    const isPlaying = this.classList.contains('playing');
+
+                    if (currentlyPlaying && currentlyPlaying !== this) {
+                        currentlyPlaying.classList.remove('playing');
+                        currentlyPlaying.textContent = '▶';
+                    }
+
+                    if (isPlaying) {
+                        // Burada ses oynatma durdurulabilir
+                        this.classList.remove('playing');
+                        this.textContent = '▶';
+                        currentlyPlaying = null;
+                    } else {
+                        // Burada ses oynatma başlatılabilir
+                        this.classList.add('playing');
+                        this.textContent = '❚❚';
+                        currentlyPlaying = this;
+                        createWaveform(waveformId); // Her tıkladığında yeniden oluşturuluyor
+                    }
+                });
+            });
+
+            // Ses dalgası görselini oluştur
+            function createWaveform(containerId) {
+                const container = document.getElementById(containerId);
+                if (!container) return;
+
+                // Container içindeki önceki canvas'ı temizle
+                container.innerHTML = '';
+
+                const canvas = document.createElement('canvas');
+                canvas.width = container.offsetWidth;
+                canvas.height = 50;
+                container.appendChild(canvas);
+
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#3c5e93';
+
+                for (let i = 0; i < canvas.width; i += 3) {
+                    const height = Math.random() * 40 + 5;
+                    ctx.fillRect(i, (canvas.height - height) / 2, 2, height);
+                }
+            }
+
+            // Sayfa yüklendiğinde ilk waveform'ları oluştur
+            document.querySelectorAll('.waveform-container').forEach(container => {
+                createWaveform(container.id);
+            });
+
+            // Dosya arama fonksiyonu
+            document.getElementById('search-input').addEventListener('input', function() {
+                const searchText = this.value.toLowerCase();
+                const fileItems = document.querySelectorAll('.file-item');
+
+                fileItems.forEach(item => {
+                    const fileName = item.querySelector('.file-name').textContent.toLowerCase();
+
+                    if (fileName.includes(searchText)) {
+                        item.style.display = 'flex';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            });
+
+            // Sayfa yeniden boyutlandırıldığında waveform'ları yeniden çiz
+            window.addEventListener('resize', () => {
+                document.querySelectorAll('.waveform-container').forEach(container => {
+                    createWaveform(container.id);
+                });
+            });
+        });
+    </script>
 </body>
 </html>
